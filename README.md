@@ -1,2 +1,2 @@
-# MachingLearning
-a study of MachingLearing
+# MachineLearning
+a study of MachineLearning

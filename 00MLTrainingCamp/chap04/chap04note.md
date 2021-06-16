@@ -532,6 +532,8 @@ $$
 
 # 极大似然估计
 
+## 极大似然估计基本思路
+
 **极大似然估计：例子**
 
 - 考虑最简单的情况，即掷一个不公平的硬币：
@@ -571,7 +573,8 @@ $$
 
 
 
-**如何选择 p(x i ) 的形式**
+**如何选择 $p(x_i)$ 的形式**
+
 - $p(x_i )$ 长什么样呢？
 - 要控制 $p(x_i )$ 取值在 0 到 1 之间；
 - 一个常见选择 $p(x_i) = \frac{1}{1 + exp(-f(x_i))}$
@@ -595,125 +598,293 @@ $$
 $$
 其中 $K$ 是一个跟 $f$ 无关的常数，所以这里最小化的距离是$\sum_i(y_i - f(x_i))^2$这就是最小二乘法
 
+方差大是欠拟合
+
+**分类和回归**
+
+- 第一种情况，称之为二分类问题，对应多分类问题也可以进行对应推导；
+-  第二种情况，称之为回归问题；
+-  即使在监督学习的框架下，还有很多其他类型的问题。
+
+回归：$y_i = f_{\theta}(x_i) + \epsilon_i, \epsilon_i \sim N(0, \delta^2 ?)$
+
+分类：$y_i = \left \{\begin{matrix} 1 & p_{\theta 1}^{\theta} \\ 2 & p_{\theta 2}^{\theta} \\ ... & ... \\ T & p_{\theta T}^{\theta} \end{matrix} \right.$ $\sum y_i log(p^{\theta}(x_i)) + (1 - y_i)log(1 - p^{\theta}(x_i))$
+
+## Tobit模型
+
+**某银行小微快贷额度测算问题**
+
+- 目标：确定小企业的贷款额度。
+- 考虑方向：
+  - 违规可能性：要把风险控制在一定范围内；
+  - 需求：对贷款需求越高的企业应该给更多贷款。
+- 第一个问题可以作为分类问题解决；
+- 第二个问题不好解决。
+
+放款
+
+- 风险 ---> 评分卡 + 阈值
+- 需求
 
 
 
+**基本思想$$**
+
+- 虽然观测不到企业的真实需求，但可以假设存在一个真实需求。
+- 我们知道实际放款额和实际使用金额，所以存在两种情况：
+  - 放款额度大于实际使用金额，这时可以假定实际需求即为实际使用金额；
+  - 放款额度等于实际使用金额，这时虽然不知道实际需求，但是知道实际需求一定大于等于放款额度。
+
+分析
+
+- $z_i$：实际放款额度
+- $y_i$：提现额度
+
+有 $y_i \leqslant z_i$
+
+- $y_i^*$：真实需求
+
+$$
+y_i^* = f_{\theta}(x_i) + \epsilon_i, \epsilon_i \sim N(0, \delta^2)
+$$
 
 
 
+**模型的基本思路**
 
+- 假设真实需求为 $y^*_i$；
+- 进一步假设 $y^∗_i = f(x_i) + ϵ_i$ ，且假设 $ϵ_i$ 为正态分布；
+- 银行所给的真实的额度假设为 $y_i$ ；
+- 当发生截断时，其似然函数为 $P(y^∗_i \geqslant y_i)$；
+- 当不发生截断时，其似然函数为 $p(y_i)$；
+- 两者结合，即可以得到估计方式。
+
+
+
+**具体模型**
+$$
+z_i = \left \{\begin{matrix}1 & full \\ 0 & not\ full  \end{matrix}\right. \\
+y_i : Loan\ amount \\
+y_i^* = f_{\theta}(x_i) + \epsilon_i, \epsilon_i \sim N(0, \delta^2)
+$$
+
+$$
+\begin{align}
+& while \ z_i = 0, \  y_i = y_i^* = f_{\theta}(x_i) + \epsilon_i \\
+& ?p(y_i) = \frac{1}{\sqrt{2\pi}\delta?} exp(- \frac{(y_i - f_{\theta(x_i)})^2}{2\delta}) \\
+& while\ z_i = 1 \quad P(y_i \geqslant y_i^*)  \\
+& = P(y_i \geqslant f_{\theta}(x_i) + \epsilon_i) \\
+& = P(\epsilon_i \leqslant y_i - f_{\theta}(x_i))  \\
+& = \Phi(\frac{y_i - f_{\theta}(x_i)}{\delta})   \\
+& 1 - \Phi(\frac{y_i - f_{\theta}(x_i)}{\delta})^{z_i}p(y_i)^{1 - z_i}
+\end{align}
+$$
+
+对于任何 $x_i \sim F$，我们可以将他转换成为正太分布
+
+因为 $P(x_i \leqslant F^{-1}(t_i)) = P(F(X_i)\leqslant t) = t$； 所以 $F(x_i) \sim Unif(0,1)$
+
+设正态分布 CDF为 $\Phi$；由均匀分布的特点可得。
+$$
+P(u_i \leqslant \Phi(t)) = \Phi(t) = P(F(x_i) \leqslant \Phi(t))
+$$
+结论：$P(\Phi^{-1}(F(x_i)) \leqslant t) = \Phi(t)$
+
+大数定律：
+$$
+\begin{align}
+& 1.x_1,x_2,\cdots,x_n \quad i.i.d \\
+& 2.E|x_1| < x \\
+& 3.\frac{1}{n} \sum_{i=1}^{n} x_i \underset{\rightarrow}{n}Ex_1 ???
+\end{align}
+$$
+中心极限定理：
+
+## EM算法和HMM
+
+- 通常情况下，在极大似然框架中，如果容易推导出对数似然函数的话，那么求解将会非常容易；
+-  但是如果存在隐变量，则推导变得非常困难；
+-  在一些情况下，EM 算法是解决隐变量问题的一个非常通用的框架 (现实情况少见)。
+
+**HMM 算法的推导难度**
+
+- HMM 算法的估计方法称之为 Baum-Welch 算法；
+- 现场去 “推导” 该算法是不可能的；
+- 现场去 “默写” 该算法是有可能的；
+- 默写跟数学能力毫无关系。
+
+### EM算法
+
+考虑以下关系：用$I(\theta; X)$ 表示对数似然函数，则：
+$$
+\begin{align}
+I(\theta; X) &= \log p_{\theta}(X) \\
+& = \log \int p_{\theta} (X, y) dy \\
+& = \log \int \frac{p_{\theta}(X,y)}{p_{\tilde{\theta}}(y|X)} p_{\tilde{\theta}}(y|X) dy \\
+& \geqslant \int \log(p_{\theta}(X, y))p_{\tilde{\theta}}(y|X)dy - \int \log(p_{\tilde{\theta}}(y|X))p_{\tilde{\theta}}(y|X)dy \\
+& = E_{\tilde{\theta}}[\log p_{\theta}(X, y)|X] - E_{\tilde{\theta}}[\log p_{\tilde{\theta}}(y|X)|X]
+\end{align}
+$$
+其中：
+
+**注意在这里**
+
+- $y$ 是一个隐变量；
+- $\tilde{\theta}$ 是当前的估计，目标是通过迭代的方法找到下一步的估计 $\theta$，因为$E_{\tilde{\theta}}[\log p_{\tilde{\theta}}(y|X)|X]$ 跟$\theta$ 没有关系，所以可以忽略；
+- 定义 $Q(\theta, \tilde{\theta}) = E_{\tilde{\theta}}[\log p_{\theta}(X,y)|X]$， 则EM算法可以定义为：
+  - 计算 $Q(\theta, \tilde{\theta})$；
+  - 最大化 $\theta := argmax_{\theta '}Q(\theta ', \tilde{\theta})$
+
+### 隐马尔可夫链
+
+- 假设对于每一个观测 $d$ 可以观测到 $\{X_t^{(d)}, 1 \leq t \leq T\}$；
+- 它的概率分布取决于隐变量 $z_t^{(d)}$ 。并且该变量服从马尔可夫性质，因此如果知道 $t − 1$ 的信息，就不需要知道更早的信息，就可以得到 $z_t^{(d)}$ 的概率分布；
+- 假设 $X’s$ 和 $z’s$ 都只能取有限多个值。
+
+#### 推导过程
+
+我们有：
+$$
+P(z, X; \theta) = \prod_{d = 1}^{D}(\pi_{z_1^{(d)}}B_{z_1^{(d)}}(X_1^{(d)}) \prod_{t = 2}^{T}A_{z_{t - 1}^{(d)}z_t^{(d)}}B_{z_t^{(d)}}(x_t^{(d)}))
+$$
+**在这里**
+
+- $(d)$ 上标表示观测 $d$；
+- $\pi_{z_1^{(d)}}$ 为初始分布；
+- $A_{z_{t-1}^{(d)}z_t^{(d)}}$ 为转移概率；
+- $B_{z_t^{(d)}}(X_t^{(d)})$ 为发射概率。
+
+**对上式取 log之后**
+$$
+\log P(z, X; \theta) = \sum_{d=1}^{D}[\log \pi_{z_1^{(d)}} + \sum_{t=2}^{T}\log A_{z_{t-1}^{(d)}z_t^{(d)}} + \sum_{t = 1}^{T}\log B_{z_t^{(d)}}(X_t^{(d)})]
+$$
+**放到 $Q$ 函数中， 假设目前的参数 $\theta^s$：**
+$$
+\begin{align}
+Q(\theta, \theta^s) &= \sum_{z\in Z}\sum_{d=1}^D\log \pi_{z_1^{(d)}}P(z, X;\theta^s) \\
+&+ \sum_{z \in Z}\sum_{d=1}^D\sum_{t=2}^{T}\log A_{z_{t-1}^{(d)}z_t^{(d)}}P(z, X, \theta^s) \\
+&+ \sum_{z \in Z}\sum_{d=1}^D\sum_{t=1}^{T}\log B_{z_t^{(d)}}(X_t^{(d)})P(z, X;\theta^s)
+\end{align}
+$$
+**加上拉格朗日乘子：**
+$$
+\begin{align}
+\hat{L}(\theta, \theta^s) &:=Q(\theta, \theta^s) - \lambda_{\pi}(\sum_{i=1}^M \pi_i - 1) \\
+& - \sum_{i=1}^M \lambda_{A_i}(\sum_{j=1}^M A_{ij} - 1) \\
+& - \sum_{i=1}^M \lambda_{B_i}(\sum_{j=1}^N B_i(j) - 1) 
+\end{align}
+$$
+
+**首先求解** $\pi_i$。
+$$
+\begin{align}
+\frac{\partial \hat{L} (\theta, \theta^s)}{\partial \pi_i} &= \frac{\partial}{\partial \pi_i}(\sum_{z \in Z} \sum_{d=1}^{D} \log \pi_{z_1^{(d)}}P(z,X; \theta^s))-\lambda_{\pi} = 0\\
+& = \frac{\partial}{\partial \pi_i}(\sum_{j=1}^{M}\sum_{d=1}^{D}\log \pi_j P(z_1^{(d)}=j,X;\theta^s)) - \lambda_{\pi} = 0 \\
+& = \sum_{d=1}^D \frac{P(z_1^{(d)} = i,X;\theta^s)}{\pi_i} - \lambda_{\pi} = 0
+\end{align}
+$$
+
+**然后**
+$$
+\frac{\partial \hat{L}(\theta, \theta^s)}{\partial \lambda_{\pi}} = - (\sum_{i=1}^M \pi_i - 1) = 0
+$$
+
+**求解，可以得到：**
+$$
+\begin{align}
+\pi_i &= \frac{\sum_{d=1}^D P(z_1^{(d)}=i, X;\theta^s)}{\sum_{j=1}^D\sum_{d=1}^D P(z_1^{(d)} =j, X;\theta^s)} = \frac{\sum_{d=1}^D P(z_1^{(d)}=i,X;\theta^s)}{\sum_{d=1}^D \sum_{j=1}^M P(z_1^{(d)} = j, X; \theta^s)} \\
+&= \frac{\sum_{d=1}^DP(z_1^{(d)} = i,X; \theta^s)}{\sum_{d=1}^D P(X;\theta^s)} = \frac{\sum_{d=1}^D P(z_1^{(d)} = i,X; \theta^s)}{DP(X;\theta^s)} \\
+&= \frac{\sum_{d=1}^D P(X;\theta^s)P(z_1^{(d)} = i|X; \theta^s)}{DP(X;\theta^s)} = \frac{1}{D}\sum_{d=1}^D P(z_1^{(d)} = i|X; \theta^s)\\
+&= \frac{1}{D}\sum_{d=1}^D P(z_1^{(d)} = i|X^{(d)}; \theta^s)
+\end{align}
+$$
+
+**采用类似方法：**
+$$
+\begin{align}
+A_{ij} &= \frac{\sum_{d=1}^D\sum_{t=2}^T P(z_{t-1}^{(d)}=i, z_t^{(d)}=j,X;\theta^s)}{\sum_{j=1}^M \sum_{d=1}^D\sum_{t=2}^T P(z_{t-1}^{(d)}=i, z_t^{(d)}=j,X;\theta^s)} \\
+&= \frac{\sum_{d=1}^D\sum_{t=2}^T P(z_{t-1}^{(d)}=i, z_t^{(d)}=j,X;\theta^s)}{\sum_{d=1}^D\sum_{t=2}^T P(z_{t-1}^{(d)}=i,X;\theta^s)} \\
+&= \frac{\sum_{d=1}^D\sum_{t=2}^T P(X;\theta^s)P(z_{t-1}^{(d)}=i, z_t^{(d)}=j|X;\theta^s)}{\sum_{d=1}^D\sum_{t=2}^T P(X;\theta^s)P(z_{t-1}^{(d)}=i|X;\theta^s)} \\
+&= \frac{\sum_{d=1}^D\sum_{t=2}^T P(z_{t-1}^{(d)}=i, z_t^{(d)}=j|X^{(d)};\theta^s)}{\sum_{d=1}^D\sum_{t=2}^T P(z_{t-1}^{(d)}=i|X^{(d)};\theta^s)} \\
+\end{align}
+$$
+**更进一步：**
+$$
+\begin{align}
+B_i(j) &= \frac{\sum_{d=1}^D\sum_{t=1}^T P(z_t^{(d)} = i,X; \theta^s)I(x_t^{(d)}=j)}{\sum_{j=1}^N \sum_{d=1}^D\sum_{t=1}^T P(z_t^{(d)}=i, X;\theta^s)I(x_t^{(d)}=j)} \\
+&= \frac{\sum_{d=1}^D\sum_{t=1}^T P(z_t^{(d)} = i,X; \theta^s)I(x_t^{(d)}=j)}{\sum_{d=1}^D\sum_{t=1}^T P(z_t^{(d)} = i,X; \theta^s)} \\
+&= \frac{\sum_{d=1}^D\sum_{t=1}^T P(z_t^{(d)} = i|X^{(d)}; \theta^s)I(x_t^{(d)}=j)}{\sum_{d=1}^D\sum_{t=1}^T P(z_t^{(d)} = i|X^{(d)}; \theta^s)} \\
+\end{align}
+$$
+**思考一下**
+
+- 为什么要推导 $P(z_{t-1}^{(d)}=i, z_t^{(d)}=j|X^{(d)};\theta^s)$ 和 $P(z_t^{(d)} = i|X^{(d)};\theta^s)$？
+- 这是因为这两者可以用动态规划来求解
+
+**难点在哪里？**
+
+$P(z_{t-1}^{(d)}=i, z_t^{(d)}=j|X^{(d)}$ 和 $P(z_t^{(d)} = i|X^{(d)};\theta^s)$可以动态求解有效动态求解这件事情不可能一眼看出来，甚至我们在开始推导的时候也不可能考虑到动态求解的问题。
 
 # 贝叶斯估计和变分贝叶斯
 
-
-
-
-
-
-
-
-
-
-
-# 矩阵和张量求导
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# 总结
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+**贝叶斯学派和频率学派**
+- 在之前所有的模型中，我们均假设有所谓的真实参数或模型，目的是为了推导出该真实的模型。
+- 贝叶斯学派的视角不同：
+  - 假设参数是 $\theta$，将会对其有一个 prior，表示为 $p(\theta)$，而 $\theta$ 本身就是随机；
+  - 现在得到了观测 $X$，目标是得到 posterior：$p(\theta|X)$。
+- 根据贝叶斯公式，有
+
+$$
+p(\theta|X) = \frac{p(X|\theta)p(\theta)}{\int p(X|\theta)p(\theta)d\theta}
+$$
+
+**举例**
+
+假设 $\mu \sim N(0,1), X|\mu \sim N(\mu,1)$，我们一起来推导 $\mu$ 的 posterior
+
+$$
+\begin{align}
+p(\mu|X) &\propto exp(-\mu^2/2)\prod_{i=1}^N exp(-\sum_i (X_i - \mu)^2/2) \\
+&\propto exp(-(\frac{N+1}{2}\mu^2 -\mu \sum_iX_i)) \\
+&\propto exp(-(\mu^2-\frac{2\sum_iX_i}{N+1}\mu)/(\frac{2}{N+1})) \\
+&\propto exp((\mu - \frac{\sum_iX_i}{N+1})^2/\frac{2}{N+1}) \\
+\end{align}
+$$
+**结论**
+
+- $\mu|X \sim N(\frac{\sum_iX_i}{N+1}, \frac{1}{(N+1)^2})$；
+- 因此，posterior也是正态分布；
+- 这称之为Conjugate Priors。
+
+**贝叶斯方法的好处和坏处**
+
+- 好处：
+  - 方便处理隐变量；
+  - 可以对不确定性进行估计。
+- 坏处：计算麻烦 → 就目前的深度学习应用来说，最方便的是变分法，
+
+**证明下式**
+$$
+\log p(X) - D[q(z)\|p(z|X)] = E_{z\sim q}[\log(pX|z)] - D[Q(z)\|P(z)]
+$$
+
+其中 D 为KL-divergence，即$D(P(x)\|Q(x)) = E_{X\sim P}(\log p(X) - \log q(X))$。
+
+证明：
+$$
+\begin{align}
+& l.h.s = \log p(x) - \int \log q(z)q(z)dz + \int \log p(z|X)q(z)dz \\
+& r.h.s = \int \log p(X|z)q(z)dz - \int \log q(z)q(z)dz + \int \log p(z)q(z) dz \\
+& p(X|z) = p(x,z)/p(z) \\
+& r.h.s = \int (\log p(X,z) - \log p(z))q(z)dz  + \int \log p(z)q(z) dz - \int \log q(z)q(z)dz  \\
+& r.h.s = \int \log p(X,z)q(z)dz - \int \log q(z)q(z)dz  \\
+& r.h.s = \int (\log p(z|X) + \log p(x) )q(z)dz - \int \log q(z)q(z)dz  \\
+& r.h.s = \int\log p(x)q(z)dz + \int \log p(z|X)q(z)dz - \int \log q(z)q(z)dz  \\
+& r.h.s = \log p(x)\int q(z)dz + \int \log p(z|X)q(z)dz - \int \log q(z)q(z)dz  \\
+& \int q(z)dz = 1 \\
+& r.h.s = \log p(x) + \int \log p(z|X)q(z)dz - \int \log q(z)q(z)dz = l.h.s \\
+\end{align}
+$$
 
 
 
