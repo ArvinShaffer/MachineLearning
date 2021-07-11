@@ -219,59 +219,161 @@ Boosting的最大好处在于，每一步的残差计算其实变相的增大了
 
 
 
+## 代码实现及重要参数
+
+**代码实现总体准则**
+
+- XGBoost、LightGBM 和 CatBoost 在代码实现上极其相像，所以只需要看懂其中一个包，就可以基本看懂这几个包
+- 此外，sklearn 当中的随机森林和 ExtraTrees 的实现并不好，不如采用LightGBM
+
+
+
+**重要的参数类：涉及到树的复杂度**
+
+- 在 LightGBM 当中，最主要的参数为 num_leaves（叶子个数）
+- 除此之外，一些方法还提供树的深度作为控制
+- 一般来说用叶子个数控制要比用深度控制更细腻，也更有助于选择优质变量
+- 注意：叶子数量跟学习率高度相关
+  - 一般来说，当树更复杂的时候，学习率要尽量减小
+  - 尽可能控制在学习率可以增加较合理范畴达到最好
+
+**重要的参数类：涉及到数据筛选的随机性**
+
+- 每一次随机选取多少变量或观测来拟合
+- 在 LightGBM 当中，这个参数称之为 bagging_fraction 以及feature_fraction
+- 通常来说，我会从 0.8（？）开始
+
+**Dart**
+
+- Dart(Vinayak and Gilad-Bachrach 2015) 是一种模仿 Dropout 方式来构建模型以防止（？）过拟合的方法
+- 核心思想：在每次 boosting 的时候都将前一轮的一些树随机扔掉
+-  一般来说，这会极大减慢模型拟合的过程，但是在一些情况下可以得到更好的结果
+
+**其他参数**
+
+- 类似于 LightGBM 的库有上百个不同的参数，这些参数的效果很难通过经验总结出来
+- 在一些官方网站当中，有关于调参的建议
+- 在一些情况下，则只能依靠一些经验积累，但任何人的经验积累都可能是有问题的
+
+**如何寻找最优参数**
+
+- 当参数量非常大的时候，依靠遍历的方法去寻找最优的参数显然是有问题的
+- 一般来说，我个人会将参数寻找放在三个阶段里：
+  - 随机探索阶段
+  - 顺序搜索阶段
+  - 贝叶斯优化阶段
+
+**超参数搜索中如何做到公平客观**
+
+- 在我们最开始做任何超参数选择的时候，一定要考虑选择是否公平客观
+- 如果我们选择不同的变量，采用不同程度的调参（一个精调另外一个细调），那么得到的结果就会是不公平的，这并不能告诉我们衍生变量的好坏情况
+- 同样道理，对于不同的数据集，我们也不应该用不公平的比较法
+
+**随机探索阶段**
+
+- 随机探索阶段：尽可能多的收集关于模型运行的信息，并从中找到能够提示模型性质的线索
+- 核心：尽可能多记录不同的 metric
+- 可以尝试一些极端的方法
+- 可以检查变量的重要性
+
+**顺序搜索阶段**
+
+- 在确定了大致合理的参数范围后，我们可以开始按照参数的重要性（？）进行搜索
+- 例如：首先调整学习率 + 深度，再调整 bagging_fraction 和feature_fraction
+- 目的：为了找到一个大致合理的范畴，减少之后搜索的负责度
+
+**Hyperopt**
+
+- 整体来说，Hyperopt 是基于贝叶斯方法的一套优化方法
+
+- 建议：
+  - 在已经调过的最优参数周围进行调参，而未调过的参数则尽可能选择较大的范畴
+  - 采用多次初始化要比采用一次初始化跑多次的效果更好
+- Hyperopt 花费时间极长，尽量考虑是否一定需要采用这种方式
+
+**单模型和多模型**
+
+- 通常来说，调参至少要采用 k-fold 选取并在测试集上验证
+- 如果要采用更复杂的模型集成方式，则最好构建 pipeline，并在每晚下班后自动调整接着在第二天早上查看最终结果
+
+
+
+google lightgbm parameter tuning 
+
+lightgbm.readthedocs.io/en/latest/Parameters.html
+
+参数之间存在关联
+
+
+
 # 线性模型
 
+**“线性”模型的含义**
+
+- 我们这里所说的线性模型指的是有 $x^t_i \beta$这种形式的模型，其中 $x_i$ 为第 $i$ 个样本的输入，而 $\beta$ 则代表估计参数
+- 线性模型的表达形式要比树模型复杂的多，所以相对来说，如果线性模型能找到合适的样本，则更容易保证在较小的模型中得到更好的效果
+- 反过来，由于线性模型的拟合不是贪婪的拟合，所以用线性模型处理高维的数据是很容易过拟合的
+- 由于线性模型的表达式和树模型的不同，所以线性模型的特征构造有很多技巧，这部分我们会在下一章中讲
+- 此外，由于线性模型对于异常值非常敏感，需要重点关注，也建议进行标准化
 
 
 
+**线性回归和逻辑回归**
 
+- 线性回归针对的是目标为连续且可以取全部实数值的情况
+- 在一些情况下，可以不用这样取值，比如收入一般不会是负 100 万的
+- 在这种情况下，我们要对模型做一些变化，例如取 log
+- 逻辑回归也是类似的情况
+- 此外还有一类模型叫做 GLM，可见 Andrew NG 讲义
 
+**SVM**
+见 Andrew NG 讲义
 
+# KNN
 
+- KNN 的思路非常简单：假如我们需要处理的是分类问题，那么只需要找到距离最近的几个观测，然后看他们的分布情况即可
+- KNN 最大的问题：计算缓慢，而且推测也很慢
+- KNN 一般很少单独使用，但是 KNN 的使用技巧中有一个很有用的方法
 
+**降维方法**
 
+- 两种最常见的降维方法: 主成分方法和 t-SNE(Maaten and Hinton 2008)
+- 主成分法的主要目的是找到线性独立的、可以解释 X 变量的降维变量
+- t-SNE 则更为复杂，需要通过梯度迭代来解决，并且效率比较低
 
+**t-SNE 和 KNN 的结合**
 
+- 在一些情况下，使用 tSNE 降维后，将 KNN 的结果（针对 tSNE）加入到其中；
+- 这在模型平均中是一个很重要的方法
 
+# 模型评估指标
 
+**大量的模型评估指标**
 
+- 即使是分类和回归问题，也有很多指标，见sklearn 评估指标表格
+- 一般来说，最简单的指标最适合评估模型的效果（例如准确度）
+- 更复杂的指标，容易帮我们找到模型的一些问题
 
+**关于 ROC 的注意事项**
 
+- 请注意，ROC 是一个很危险的指标
+- ROC 的基本思路：随着阈值的不同，正负样本区分不同，所以说我们应该考察在不同截断阈值下面的表现
+- 问题：大部分模型并不能对这个违约概率进行预测，在这种情况下，可以做到 ROC 很高但是实际预测效果极差
+- 一般方法：使用逻辑回归作为 Stacking 的最后一层
 
+# 参考文献
 
+- Chen, Tianqi and Carlos Guestrin (2016). “Xgboost: A scalable tree boosting system”. In: Proceedings of the 22nd acm sigkdd international conference on knowledge discovery and data mining, pp. 785–794.
+- Chengsheng, Tu, Liu Huacheng, and Xu Bing (2017). “AdaBoost typical Algorithm and its application research”. In: MATEC Web of Conferences.Vol. 139. EDP Sciences, p. 00222.
+- Friedman, Jerome H (2001). “Greedy function approximation: a gradient boosting machine”. In: Annals of statistics, pp. 1189–1232.
+- Geurts, Pierre, Damien Ernst, and Louis Wehenkel (2006). “Extremely randomized trees”. In: Machine learning 63.1, pp. 3–42.
+- Ke, Guolin et al. (2017). “Lightgbm: A highly eﬀicient gradient boosting decision tree”. In: Advances in neural information processing systems 30,pp. 3146–3154.
+- Maaten, Laurens Van der and Geoffrey Hinton (2008). “Visualizing data using t-SNE.”. In: Journal of machine learning research 9.11.
+- Popov, Sergei, Stanislav Morozov, and Artem Babenko (2019). “Neural oblivious decision ensembles for deep learning on tabular data”. In: arXiv preprint arXiv:1909.06312.
+- Prokhorenkova, Liudmila et al. (2017). “CatBoost: unbiased boosting with categorical features”. In: arXiv preprint arXiv:1706.09516.
+- Vinayak, Rashmi Korlakai and Ran Gilad-Bachrach (2015). “Dart: Dropouts meet multiple additive regression trees”. In: Artificial Intelligence and Statistics. PMLR, pp. 489–497.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Homework
 
 
 
